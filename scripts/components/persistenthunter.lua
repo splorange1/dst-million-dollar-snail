@@ -21,7 +21,6 @@ function PersistentHunter:SetTargetByID(kuid)
     self.targetname = UserToName(kuid)
 
     self.inst:AddTag("target_"..self.targetid)
-    --self.inst.LinkToPlayer(self.inst, self.target)
     self:StartHunting(self.targetid)
 end
 

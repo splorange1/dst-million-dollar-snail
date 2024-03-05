@@ -67,7 +67,6 @@ function PersistentSnailManager:SpawnSnailForPlayer(player, x,y,z)
             fx.Transform:SetPosition(x, y, z)
             angrysnail.Transform:SetPosition(x, y, z)
         else
-            --TODO: RANDOM SPAWN AROUND PORTAL
             local px, py, pz = player.Transform:GetWorldPosition()
             fx.Transform:SetPosition(px+10, py, pz)
             angrysnail.Transform:SetPosition(px+10, py, pz)
@@ -96,11 +95,14 @@ function PersistentSnailManager:UpdateSnailTable()
     for _, i in ipairs(self.activesnails) do
         for k, v in ipairs(self.snailtable) do
             if i.components.persistenthunter.targetid == v.userid then
-                table.remove(self.snailtable, k)
-                self:AddToSnailTable(UserToPlayer(k), i)
+                if UserToPlayer(v.userid) ~= nil then
+                    table.remove(self.snailtable, k)
+                    self:AddToSnailTable(UserToPlayer(k), i)
+                end
             end
         end
     end
+
 end
 
 return PersistentSnailManager

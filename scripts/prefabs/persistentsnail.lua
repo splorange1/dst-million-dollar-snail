@@ -1,18 +1,11 @@
+local modname = KnownModIndex:GetModActualName("Million Dollar Snails")
+local snailspeed = GetModConfigData("snailSpeed", modname)
 
 local assets =
 {
     Asset("ANIM", "anim/slurtle.zip"),
     Asset("ANIM", "anim/slurtle_snaily.zip"),
     Asset("SOUND", "sound/slurtle.fsb"),
-}
-
-local prefabs =
-{
-    "slurtleslime",
-    "slurtle_shellpieces",
-    "slurtlehat",
-    "armorsnurtleshell",
-    "explode_small",
 }
 
 local persistent_snail_brain = require "brains/persistentsnailbrain"
@@ -34,36 +27,15 @@ local function OnCollide(inst, other)
             inst:DoTaskInTime(10,function()
                 inst.touchcooldown = false
             end)
-            other:PushEvent("death") -- TODO: make it work properly
+            if other.components.health then
+                other.components.health:DoDelta(other.components.health.maxhealth * -5, nil, "snaildeath")
+            end
         end
     end
 end
 
-local function OnSave(inst,data)
-    if inst.components.persistenthunter and inst.components.persistenthunter.targetid then
-        data.persistenttargetid = inst.components.persistenthunter.targetid
-    end
-end
-
 local function OnLoad(inst,data)
-    --[[if data and data.persistenttargetid ~= nil then
-        inst:DoTaskInTime(0, function()
-            inst.components.persistenthunter:SetTargetByID(data.persistenttargetid)
-        end)
-    end]]--
     inst:Remove()
-end
-
-local function LinkToPlayer(inst, player)
-    inst._playerlink = player
-
-    inst:ListenForEvent("onremove", inst._onlostplayerlink, player)
-end
-
-local function OnPlayerLinkDespawn(inst)
-    if inst then
-        TheWorld.components.persisentsnail_manager:OnPlayerLeft(inst._playerlink)
-    end
 end
 
 local function GetStatus(inst, viewer)
@@ -108,7 +80,7 @@ local function fn()
     inst:SetBrain(persistent_snail_brain)
 
     inst:AddComponent("locomotor")
-    inst.components.locomotor.walkspeed = TUNING.SNURTLE_WALK_SPEED - 2
+    inst.components.locomotor.walkspeed = snailspeed
 
     inst:SetStateGraph("SGslurtle")
 
@@ -126,14 +98,9 @@ local function fn()
 
     inst.touchcooldown = false
 
-    --inst.LinkToPlayer = LinkToPlayer
-    --inst.OnPlayerLinkDespawn = OnPlayerLinkDespawn
-	--inst._onlostplayerlink = function(player) inst._playerlink = nil end
-    
-    --inst.OnSave = OnSave
     inst.OnLoad = OnLoad
 
     return inst
 end
 
-return Prefab("persistentsnail", fn, assets, prefabs)
+return Prefab("persistentsnail", fn, assets)
