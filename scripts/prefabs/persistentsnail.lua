@@ -17,36 +17,6 @@ local prefabs =
 
 local persistent_snail_brain = require "brains/persistentsnailbrain"
 
---[[
-local function SpawnMeteorOnCorpse(inst)
-    local playerpos = inst:GetPosition()
-    inst:DoTaskInTime(1.2,function() --ensure the meteor hits the corpse's items
-        local meteor = SpawnPrefab("shadowmeteor")
-        meteor.Transform:SetPosition(playerpos.x, playerpos.y, playerpos.z)
-    end)
-end
-
-local function WesTransformation(inst)
-    inst.components.seamlessplayerswapper:_StartSwap("wes")
-end
-
-local function Test(inst)
-end
-
-local randompunishmentfns = 
-{
-    {fn = SpawnMeteorOnCorpse, name = "Shadow meteor rain!"},
-    {fn = Test, name = "Test!"},
-    --{fn = WesTransformation, name = "Wes transformation!"}
-}
-
-local function FindRandomPunishment(inst)
-    local punishment = randompunishmentfns[math.random(#randompunishmentfns)]
-    punishment.fn(inst)
-    c_announce(inst.name.."'s punishment for touching the snail is: "..punishment.name)
-end
-]]--
-
 local function DisplayNameFn(inst)
     for i, v in ipairs(AllPlayers) do
         if inst:HasTag("target_"..AllPlayers[i].userid) then
@@ -64,31 +34,9 @@ local function OnCollide(inst, other)
             inst:DoTaskInTime(10,function()
                 inst.touchcooldown = false
             end)
-            --FindRandomPunishment(other) perhaps in a future update
-            --if inst.components.health.currenthealth and inst.components.health.currenthealth < 0 then
-                --other.components.health:DoDelta(other.components.health.maxhealth * -5, nil, inst.prefab, true, inst.prefab, true)
-            --end
-            other:PushEvent("death")
+            other:PushEvent("death") -- TODO: make it work properly
         end
     end
-end
-
-local function HasTargetFn(inst)
-    --inst:PushEvent("exitshield")
-    --c_announce("t")
-end
-
-local function NoTargetFn(inst)
-    --inst:PushEvent("entershield")
-    --c_announce("n")
-end
-
-local function OnInit(inst)
-    --
-end
-
-local function OnHitOther(inst,other)
---
 end
 
 local function OnSave(inst,data)
@@ -98,15 +46,32 @@ local function OnSave(inst,data)
 end
 
 local function OnLoad(inst,data)
-    if data and data.persistenttargetid ~= nil then
+    --[[if data and data.persistenttargetid ~= nil then
         inst:DoTaskInTime(0, function()
-            inst.components.persistenthunter:SetTargetByID(data.persistenttargetid) --"KU_g0cDSBiB"
+            inst.components.persistenthunter:SetTargetByID(data.persistenttargetid)
         end)
+    end]]--
+    inst:Remove()
+end
+
+local function LinkToPlayer(inst, player)
+    inst._playerlink = player
+
+    inst:ListenForEvent("onremove", inst._onlostplayerlink, player)
+end
+
+local function OnPlayerLinkDespawn(inst)
+    if inst then
+        TheWorld.components.persisentsnail_manager:OnPlayerLeft(inst._playerlink)
     end
 end
 
-local function CustomOnHaunt(inst)
-    --
+local function GetStatus(inst, viewer)
+    if inst:HasTag("target_"..viewer.userid) then
+        return "LINKED"
+    else
+        return "NOTLINKED"
+    end
 end
 
 local function fn()
@@ -120,13 +85,9 @@ local function fn()
 
     inst.DynamicShadow:SetSize(0.75, 0.5)
 
-    MakeCharacterPhysics(inst, 10, 1.5)
-    RemovePhysicsColliders(inst)
-    inst.Physics:SetCollisionGroup(COLLISION.SANITY)
+    MakeGhostPhysics(inst, .5, .5) --will aim to pathfind, but will cheat if stuck
 
     inst.Transform:SetFourFaced()
-
-    MakeCharacterPhysics(inst, 50, .5)
 
     inst.AnimState:SetBank("snurtle")
     inst.AnimState:SetBuild("slurtle_snaily")
@@ -152,23 +113,24 @@ local function fn()
     inst:SetStateGraph("SGslurtle")
 
     inst:AddComponent("inspectable")
+    inst.components.inspectable.getstatus = GetStatus
 
     inst:AddComponent("persistenthunter")
-    inst.components.persistenthunter:SetHasTargetFn(HasTargetFn)
-    inst.components.persistenthunter:SetNoTargetFn(NoTargetFn)
 
     inst:AddComponent("combat")
-    inst.components.combat:SetRange(0.1)
+    inst.components.combat:SetRange(0.01)
 
-    --inst:AddComponent("health")
+    inst:AddComponent("drownable") -- for the smart players
 
     inst.entity:SetCanSleep(false)
 
     inst.touchcooldown = false
 
-    inst:DoTaskInTime(0, OnInit)
-
-    inst.OnSave = OnSave
+    --inst.LinkToPlayer = LinkToPlayer
+    --inst.OnPlayerLinkDespawn = OnPlayerLinkDespawn
+	--inst._onlostplayerlink = function(player) inst._playerlink = nil end
+    
+    --inst.OnSave = OnSave
     inst.OnLoad = OnLoad
 
     return inst

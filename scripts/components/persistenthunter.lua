@@ -15,28 +15,13 @@ function PersistentHunter:SetNoTargetFn(fn)
     self.notargetfn = fn
 end
 
---[[
-    not finished because not useful for the mod
-function PersistentHunter:SetTarget(target)
-    self.target = target
-    self.targetid = target.userid
-    self.targetname = target.name
-
-    self.inst:AddTag("target_"..self.targetid)
-    self.inst:DoPeriodicTask(1,function()
-        if self.target ~= nil and self.target:IsValid() then
-            self.inst.components.combat:SetTarget(self.target)
-        end
-    end)
-end
-]]--
-
 function PersistentHunter:SetTargetByID(kuid)
     self.target = UserToPlayer(kuid)
     self.targetid = kuid
     self.targetname = UserToName(kuid)
 
     self.inst:AddTag("target_"..self.targetid)
+    --self.inst.LinkToPlayer(self.inst, self.target)
     self:StartHunting(self.targetid)
 end
 
@@ -57,5 +42,4 @@ function PersistentHunter:StartHunting(kuid)
     end)
 end
 
---TheNet:GetClientTableForUser(kuid).name
 return PersistentHunter
